@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="cs" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>InfuInfo</title>
+    <style>
+        /* Barevné schéma a proměnné */
+        :root[data-theme="light"] {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --accent-color: #28a745;
+            --border-color: #e0e0e0;
+            --item-hover: #f8f9fa;
+            --selected-bg: #e8f4fd;
+        }
+        :root[data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --primary-color: #378fe9;
+            --primary-hover: #64a9f0;
+            --accent-color: #2ea043;
+            --border-color: #333333;
+            --item-hover: #2a2a2a;
+            --selected-bg: #182b3a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            padding-top: 90px; /* Místo pro fixní hlavičku */
+            padding-bottom: 50px;
+        }
+
+        /* Fixní hlavička */
+        header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 75px;
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            letter-spacing: 1px;
+        }
+
+        .top-right-controls {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* Kontejner obsahu */
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        /* Přihlašovací obrazovka */
+        #login-screen {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            max-width: 400px;
+            margin: 40px auto;
+            text-align: center;
+        }
+
+        .input-group { margin-bottom: 15px; }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-success { background-color: var(--accent-color); margin-top: 15px; }
+
+        /* Hlavní aplikace (skrytá před přihlášením) */
+        #app-screen { display: none; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        h2 { font-size: 1.2rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; display: inline-block;}
+
+        /* Seznam k objednání */
+        #order-list { list-style: none; margin-bottom: 15px; }
+        #order-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            font-weight: 500;
+        }
+        .note-preview {
+            background: var(--selected-bg);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-style: italic;
+            display: none;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Katalog položek */
+        .catalog-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 6px;
+        }
+        .catalog-item:hover { background-color: var(--item-hover); }
+        .catalog-item.selected { background-color: var(--selected-bg); font-weight: 600; }
+        
+        .item-name { flex-grow: 1; padding-right: 10px; }
+        
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .qty-btn {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--primary-color);
+            background: var(--card-bg);
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .qty-btn:active { background: var(--primary-color); color: white; }
+        .qty-display { width: 25px; text-align: center; font-weight: bold; }
+
+        /* Poznámka dole */
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        .error-msg { color: #dc3545; font-size: 0.9rem; margin-top: 10px; display: none; }
+
+        /* Responzivita pro malé displeje */
+        @media (max-width: 500px) {
+            h1 { font-size: 1.5rem; margin-right: 90px; }
+            .top-right-controls { font-size: 0.75rem; gap: 6px; }
+            .datetime { display: flex; flex-direction: column; text-align: right; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>InfuInfo</h1>
+        <div class="top-right-controls">
+            <div class="datetime">
+                <span id="date">00/00/0000</span>
+                <span id="time">00:00:00</span>
+            </div>
+            <button class="theme-toggle" id="theme-btn" title="Přepnout vzhled">🌓</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- PŘIHLÁŠENÍ -->
+        <div id="login-screen">
+            <div class="input-group">
+                <input type="text" id="username" placeholder="jméno">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="heslo">
+            </div>
+            <button class="btn" onclick="login()">Přihlásit</button>
+            <p class="error-msg" id="login-error">Chybné jméno nebo heslo!</p>
+        </div>
+
+        <!-- HLAVNÍ APLIKACE -->
+        <div id="app-screen">
+            
+            <!-- Výsledný seznam -->
+            <div class="card">
+                <h2>K objednání</h2>
+                <ul id="order-list">
+                    <li style="color: gray; font-weight: normal;">Zatím nebylo nic vybráno...</li>
+                </ul>
+                <div id="note-display" class="note-preview"></div>
+                <button class="btn btn-success" onclick="sendOrder()">Hotovo (Odeslat)</button>
+            </div>
+
+            <!-- Seznam všech roztoků -->
+            <div class="card">
+                <h2>Seznam infuzních roztoků</h2>
+                <div id="catalog"></div>
+            </div>
+
+            <!-- Poznámka -->
+            <div class="card">
+                <h2>Poznámka k objednávce</h2>
+                <textarea id="note-input" placeholder="Zde napište případnou poznámku..."></textarea>
+                <button class="btn" onclick="saveNote()">Uložit poznámku</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 1. DATA UŽIVATELŮ A POLOŽEK
+        const users = {
+            "user01": "0101", "user02": "0202", "user03": "0303",
+            "user04": "0404", "user05": "0505", "user23": "0203"
+        };
+
+        const items = [
+            "10% Aminoven 500 ml", "10% Aminoplasmal Hepa 500 ml", "Nephrotec 500 ml",
+            "Smofkabiven 1970 ml", "Smofkabiven extra nitrogen 1518 ml", "Smofkabiven extra nitrogen 1012 ml",
+            "Smofkabiven extra nitrogen 2025 ml", "Olimel N9 E 1000 ml", "Olimel N9 E 2000 ml",
+            "Olimel N12 E 650 ml", "Plasmalyte 1000 ml", "Multibic bez draslíku 2x5000 ml",
+            "Calrecia 100 mml/l", "Cigenta secunect 136_mmol/l", "NaBic 8,4% 100 ml",
+            "20% Manitol 250 ml", "5,85% NaCl 100 ml", "10% NaCl 100 ml", "7,45% KCL 100 ml",
+            "8,7% Na2PO4 200 ml", "Gelaspan 4%", "20% Smoflipid 250 ml", "5% Glukoza 100 ml",
+            "5% Glukoza 500 ml", "10% Glukoza 500 ml", "20% Glukoza 500 ml", "40% Glukoza 500 ml",
+            "Aqua 250 ml", "Aqua 500 ml", "Aqua 1000 ml", "Aqua- oplach sterilní 1000 ml",
+            "FR 100 ml", "FR 250 ml", "FR 500 ml", "FR 1000 ml", "5% G 250 ml", "5% G 1000 ml"
+        ];
+
+        // Stav aplikace
+        let order = {}; // { "Název položky": počet }
+        let savedNote = "";
+        let loggedUser = "";
+
+        // 2. ČAS A DATUM
+        function updateDateTime() {
+            const now = new Date();
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const sec = String(now.getSeconds()).padStart(2, '0');
+
+            document.getElementById('date').textContent = `${d}/${m}/${y}`;
+            document.getElementById('time').textContent = `${hrs}:${min}:${sec}`;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // 3. PŘEPÍNÁNÍ TÉMATU (SVĚTLÉ/TMAVÉ)
+        const themeBtn = document.getElementById('theme-btn');
+        themeBtn.addEventListener('click', () => {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+        });
+
+        // 4. PŘIHLÁŠENÍ
+        function login() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            const err = document.getElementById('login-error');
+
+            if (users[u] && users[u] === p) {
+                loggedUser = u;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'block';
+                initCatalog();
+            } else {
+                err.style.display = 'block';
+            }
+        }
+        // Podpora klávesy Enter při přihlášení
+        document.getElementById('password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') login();
+        });
+
+        // 5. LOGIKA SEZNAMU A OBJEDNÁVKY
+        function initCatalog() {
+            const catalog = document.getElementById('catalog');
+            catalog.innerHTML = "";
+            items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'catalog-item';
+                div.id = `item-${index}`;
+                
+                // Kliknutí na řádek přidá/odebere položku
+                div.onclick = (e) => {
+                    if(e.target.tagName !== 'BUTTON') toggleItem(item, index);
+                };
+
+                div.innerHTML = `
+                    <span class="item-name">${item}</span>
+                    <div class="controls">
+                        <button class="qty-btn" onclick="changeQty('${item}', ${index}, -1)">-</button>
+                        <span class="qty-display" id="qty-${index}">0</span>
+                        <button class="qty-btn" onclick="changeQty('${item}', ${index}, 1)">+</button>
+                    </div>
+                `;
+                catalog.appendChild(div);
+            });
+        }
+
+        function toggleItem(item, index) {
+            if (order[item]) {
+                delete order[item];
+            } else {
+                order[item] = 1;
+            }
+            updateUI(item, index);
+        }
+
+        function changeQty(item, index, delta) {
+            let current = order[item] || 0;
+            let next = current + delta;
+            if (next <= 0) {
+                delete order[item];
+            } else {
+                order[item] = next;
+            }
+            updateUI(item, index);
+        }
+
+        function updateUI(item, index) {
+            const row = document.getElementById(`item-${index}`);
+            const qtyDisplay = document.getElementById(`qty-${index}`);
+            
+            if (order[item]) {
+                row.classList.add('selected');
+                qtyDisplay.textContent = order[item];
+            } else {
+                row.classList.remove('selected');
+                qtyDisplay.textContent = 0;
+            }
+            renderOrderList();
+        }
+
+        function renderOrderList() {
+            const list = document.getElementById('order-list');
+            list.innerHTML = "";
+            const keys = Object.keys(order);
+
+            if (keys.length === 0) {
+                list.innerHTML = '<li style="color: gray; font-weight: normal;">Zatím nebylo nic vybráno...</li>';
+                return;
+            }
+
+            keys.forEach(key => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${key}</span> <strong>${order[key]} ks</strong>`;
+                list.appendChild(li);
+            });
+        }
+
+        function saveNote() {
+            const input = document.getElementById('note-input');
+            const display = document.getElementById('note-display');
+            savedNote = input.value.trim();
+            
+            if (savedNote !== "") {
+                display.style.display = 'block';
+                display.textContent = "Poznámka: " + savedNote;
+            } else {
+                display.style.display = 'none';
+            }
+        }
+
+        // 6. ODESLÁNÍ EMAILU
+        function sendOrder() {
+            const keys = Object.keys(order);
+            if (keys.length === 0 && savedNote === "") {
+                alert("Seznam je prázdný!");
+                return;
+            }
+
+            const date = document.getElementById('date').textContent;
+            const time = document.getElementById('time').textContent;
+
+            let body = `Objednávka infuzních roztoků (InfuInfo)\n`;
+            body += `Vytvořil: ${loggedUser} | Datum: ${date} ${time}\n`;
+            body += `----------------------------------------\n\n`;
+
+            keys.forEach(k => {
+                body += `${k}: ${order[k]} ks\n`;
+            });
+
+            if (savedNote !== "") {
+                body += `\n----------------------------------------\n`;
+                body += `POZNÁMKA:\n${savedNote}\n`;
+            }
+
+            // Otevře výchozí emailový klient (funguje spolehlivě bez nutnosti serveru)
+            const mailtoLink = `mailto:mrdekda@gmail.com?subject=Objednávka InfuInfo (${date})&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        }
+    </script>
+</body>
+</html>
